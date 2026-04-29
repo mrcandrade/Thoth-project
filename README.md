@@ -62,6 +62,7 @@ Parcerias institucionais e técnicas:
 
 - Enfitec Jr. (Empresa Júnior de Engenharia Física da UFRGS): https://enfitecjunior.com/
 - Prof. Mauricio Tosin (apoio acadêmico e técnico): http://lattes.cnpq.br/8031556056127117
+- CTA - Centro de Tecnologia Acadêmica - IF UFRGS https://cta.if.ufrgs.br/
 
 Idealização:
 
