@@ -1,6 +1,6 @@
 <div align="center">
 
-# Projeto de Braço Robótico com ICM e IA Agêntica
+# Projeto de Braço Robótico controlado por EEG, EMG e Sistema de IA Agêntico.
 
 ### Universidade Federal do Rio Grande do Sul (UFRGS)
 ### Enfitec Jr. - Engenharia Física
