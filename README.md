@@ -70,16 +70,16 @@ Idealização:
 ## 7. Materiais e Evidências
 Os seguintes arquivos estão disponíveis na pasta documentos:
 
-- Manual original: [documentos/HACKberryHANDBOOK.pdf](documentos/HACKberryHANDBOOK.pdf)
+- Manual original: [documentos/manual_original.pdf](documentos/manual_original.pdf)
 - Manual traduzido para português: [documentos/Manual_traduzido_PT-BR.pdf](documentos/Manual_traduzido_PT-BR.pdf)
-- Foto da equipe: [documentos/WhatsApp Image 2026-04-29 at 11.34.10.jpeg](documentos/WhatsApp%20Image%202026-04-29%20at%2011.34.10.jpeg)
-- Vídeo do braço em funcionamento: [documentos/WhatsApp Video 2026-04-29 at 11.33.36.mp4](documentos/WhatsApp%20Video%202026-04-29%20at%2011.33.36.mp4)
+- Foto da equipe: [documentos/equipe.jpeg](documentos/equipe.jpeg)
+- Vídeo do braço em funcionamento: [documentos/video.mp4](documentos/video.mp4)
 
 ## 8. Foto da Equipe
-![Foto da equipe](documentos/WhatsApp%20Image%202026-04-29%20at%2011.34.10.jpeg)
+![Foto da equipe](documentos/equipe.jpeg)
 
 ## 9. Vídeo de Demonstração
-[Assistir ao vídeo do braço robótico em funcionamento](documentos/WhatsApp%20Video%202026-04-29%20at%2011.33.36.mp4)
+[Assistir ao vídeo do braço robótico em funcionamento](documentos/video.mp4)
 
 ## 10. Impacto Esperado
 O projeto visa impactar positivamente o sistema de saúde nacional por meio de uma tecnologia assistiva 100% brasileira, com foco em acessibilidade e funcionalidade para quem realmente precisa.
