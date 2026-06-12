@@ -1,0 +1,20 @@
+# Configuração declarativa base (mesclada em Settings.extra_yaml).
+# Valores aqui complementam o .env; o .env tem precedência para chaves/segredos.
+
+vision:
+  inference_period_s: 0.2     # cadência do reconhecimento (~5 Hz)
+  recognize_every_n_frames: 5
+  min_confidence: 0.5
+
+audio:
+  wakeword_threshold: 0.5
+  silence_tail_s: 0.6
+
+motion:
+  # Limites espelham safety/limits.py e o firmware. NÃO edite só aqui.
+  slew_step_big: 4
+  slew_step_thumb: 2
+
+safety:
+  require_confirmation_for_movement: false
+  estop_on_disconnect: true

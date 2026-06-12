@@ -1,0 +1,33 @@
+# Espelho simples das dependências de runtime do pyproject.toml.
+# Para desenvolvimento, prefira:  pip install -e ".[dev]"   (ou: just setup)
+
+# --- Cognição / agentes ---
+agno>=2.6,<3
+anthropic>=0.40
+groq>=0.13
+cerebras-cloud-sdk>=1.0
+# --- Percepção: visão ---
+opencv-python>=4.10
+mediapipe>=0.10.14
+insightface>=0.7.3
+onnxruntime>=1.18
+face-recognition>=1.3
+numpy>=1.26
+# --- Percepção: áudio ---
+openwakeword>=0.6
+silero-vad>=5.1
+sounddevice>=0.4.6
+faster-whisper>=1.0
+pyttsx3>=2.90
+# --- Atuação / hardware ---
+pyserial>=3.5
+pyserial-asyncio>=0.6
+# --- Núcleo / API / config ---
+fastapi>=0.115
+uvicorn[standard]>=0.30
+websockets>=12.0
+pydantic>=2.7
+pydantic-settings>=2.3
+pyyaml>=6.0
+loguru>=0.7
+anyio>=4.4

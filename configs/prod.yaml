@@ -1,0 +1,10 @@
+# Overrides de produção (operação com a mão física).
+log:
+  verbose: false
+
+serial:
+  reconnect: true
+
+safety:
+  require_confirmation_for_movement: true   # confirma antes de ações físicas
+  estop_on_disconnect: true

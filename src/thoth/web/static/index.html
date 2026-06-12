@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mendes — Painel de Controle</title>
+  <style>
+    :root {
+      --bg: #0e1116; --panel: #171b22; --line: #262c36;
+      --txt: #e6edf3; --mut: #8b949e; --accent: #2f81f7;
+      --ok: #2ea043; --warn: #d29922; --danger: #da3633;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+           background: var(--bg); color: var(--txt); }
+    header { display: flex; align-items: center; gap: 12px; padding: 14px 22px;
+             border-bottom: 1px solid var(--line); background: var(--panel); }
+    header h1 { font-size: 19px; margin: 0; font-weight: 600; }
+    header .sub { color: var(--mut); font-size: 13px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--mut); display: inline-block; }
+    .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .dot.off { background: var(--danger); }
+    main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; padding: 16px; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--line);
+             border-radius: 10px; padding: 14px; }
+    .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+                color: var(--mut); margin: 0 0 10px; }
+    #cam { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; object-fit: contain; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+    .stat .k { color: var(--mut); font-size: 12px; }
+    .stat .v { font-size: 18px; font-weight: 600; margin-top: 2px; }
+    .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+    button { cursor: pointer; border: 1px solid var(--line); background: #1f2630;
+             color: var(--txt); padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    button:hover { border-color: var(--accent); }
+    button:active { transform: translateY(1px); }
+    .estop { grid-column: 1 / -1; background: var(--danger); border-color: var(--danger);
+             color: #fff; font-size: 16px; padding: 16px; }
+    .estop:hover { background: #b62a27; }
+    #transcript { font-size: 15px; min-height: 22px; }
+    #log { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto;
+           font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    #log li { padding: 4px 6px; border-bottom: 1px solid var(--line); color: var(--mut); }
+    #log li b { color: var(--accent); }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #1f2630; color: var(--mut); }
+    .badge.listen { background: rgba(46,160,67,.15); color: var(--ok); }
+    .row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span id="conn" class="dot"></span>
+    <h1>Mendes</h1>
+    <span class="sub">Painel de Controle · mão protética HACKberry</span>
+    <span id="listenBadge" class="badge" style="margin-left:auto">—</span>
+  </header>
+
+  <main>
+    <!-- Coluna esquerda: visão -->
+    <section class="panel">
+      <h2>Visão Computacional</h2>
+      <img id="cam" src="/video" alt="stream da câmera" />
+      <div class="row" style="margin-top:10px">
+        <span class="stat" style="flex:1"><span class="k">Última pessoa reconhecida</span>
+          <div class="v" id="person">—</div></span>
+        <span class="stat" style="width:120px"><span class="k">FPS</span>
+          <div class="v" id="fps">0</div></span>
+      </div>
+    </section>
+
+    <!-- Coluna direita: controle + status -->
+    <section>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Status da Mão</h2>
+        <div class="grid">
+          <div class="stat"><span class="k">Conexão</span><div class="v" id="handConn">—</div></div>
+          <div class="stat"><span class="k">Modo</span><div class="v" id="handMode">—</div></div>
+          <div class="stat"><span class="k">Polegar / Indicador</span><div class="v" id="angTI">—</div></div>
+          <div class="stat"><span class="k">Três dedos</span><div class="v" id="angO">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Controle Manual</h2>
+        <div class="btns">
+          <button onclick="cmd('open')">✋ Abrir</button>
+          <button onclick="cmd('fist')">✊ Punho</button>
+          <button onclick="cmd('point')">👉 Apontar</button>
+          <button onclick="cmd('pinch')">🤏 Pinça</button>
+          <button onclick="cmd('shake')">🤝 Apertar</button>
+          <button onclick="loadStatus()">↻ Status</button>
+          <button class="estop" onclick="estop()">■ PARADA DE EMERGÊNCIA</button>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Voz</h2>
+        <div id="transcript" class="mut">Diga “Mendes …” para ativar.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Eventos</h2>
+        <ul id="log"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function cmd(gesto) {
+      try {
+        const r = await fetch("/command", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gesto }),
+        });
+        if (!r.ok) alert("Erro: " + (await r.text()));
+      } catch (e) { alert("Falha de rede: " + e); }
+    }
+    async function estop() {
+      try { await fetch("/estop", { method: "POST" }); } catch (e) { alert(e); }
+    }
+    async function loadStatus() {
+      try { await fetch("/health"); } catch (e) {}
+    }
+
+    function fmtTime(ts) {
+      const d = new Date(ts * 1000);
+      return d.toLocaleTimeString("pt-BR");
+    }
+
+    function render(s) {
+      const mao = s.mao;
+      if (mao) {
+        $("handConn").textContent = mao.conectada ? "Conectada" : "Desconectada";
+        $("handMode").textContent = mao.modo || "—";
+        $("angTI").textContent = (mao.thumb ?? "—") + " / " + (mao.index ?? "—");
+        $("angO").textContent = mao.other ?? "—";
+      } else {
+        $("handConn").textContent = "Sem mão";
+      }
+      $("person").textContent = s.ultima_pessoa || "—";
+      $("fps").textContent = s.fps ?? 0;
+      const badge = $("listenBadge");
+      if (s.aguardando_comando) { badge.textContent = "● aguardando comando"; badge.className = "badge listen"; }
+      else if (s.escutando) { badge.textContent = "● escutando"; badge.className = "badge listen"; }
+      else { badge.textContent = "voz off"; badge.className = "badge"; }
+      if (s.transcricao) $("transcript").textContent = "“" + s.transcricao + "”";
+
+      const log = $("log");
+      log.innerHTML = "";
+      (s.eventos || []).slice().reverse().forEach((ev) => {
+        const li = document.createElement("li");
+        const det = Object.entries(ev.dados || {}).map(([k, v]) => `${k}=${v}`).join(" ");
+        li.innerHTML = `<b>${fmtTime(ev.ts)}</b> ${ev.tipo} ${det}`;
+        log.appendChild(li);
+      });
+    }
+
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      const ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => { $("conn").className = "dot on"; };
+      ws.onclose = () => { $("conn").className = "dot off"; setTimeout(connect, 1500); };
+      ws.onmessage = (e) => { try { render(JSON.parse(e.data)); } catch (_) {} };
+    }
+    connect();
+  </script>
+</body>
+</html>

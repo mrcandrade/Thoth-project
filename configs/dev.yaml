@@ -1,0 +1,9 @@
+# Overrides de desenvolvimento.
+log:
+  verbose: true
+
+serial:
+  mock: false        # true => usa uma mão simulada (sem hardware) quando implementado
+
+safety:
+  require_confirmation_for_movement: false
