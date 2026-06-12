@@ -23,14 +23,13 @@
  */
 
 #include <Servo.h>
-#include <avr/wdt.h>     // watchdog de hardware (anti-travamento de software)
+#include <avr/wdt.h>     // usado APENAS para wdt_disable() (ver setup)
 
-// ---------- Pinos dos 3 servos de dedos (conectores rotulados da placa Mk2) ----------
-// Padrao do manual (pag. 156): cada servo no header com o nome correspondente.
-//   INDEX header -> D5 ; MIDDLE header -> D6 ; THUMB header -> D9.
-const uint8_t PIN_THUMB = 9;   // conector THUMB  -> polegar. SEM PPTC!
-const uint8_t PIN_INDEX = 5;   // conector INDEX  -> indicador (servo grande). PPTC 500mA
-const uint8_t PIN_OTHER = 6;   // conector MIDDLE -> medio+anelar+minimo. PPTC 500mA
+// ---------- Pinos dos 3 servos de dedos (PROTOBOARD — iguais ao sketch que funcionava) ----------
+//   indicador -> D3 ; polegar -> D4 ; tres dedos -> D5.
+const uint8_t PIN_THUMB = 4;   // polegar
+const uint8_t PIN_INDEX = 3;   // indicador
+const uint8_t PIN_OTHER = 5;   // medio+anelar+minimo (dedosAux)
 
 // Inversao de sentido por servo (este modelo gira ao contrario: angulo menor = fechado).
 // Se um dedo ficar invertido (open fecha / fist abre), alterne o flag dele.
@@ -43,16 +42,19 @@ const bool REV_OTHER = true;
 // CALIBRE estes valores com a SUA mao montada antes de operar com objeto na mao.
 // Curso SEGURO (manual usa ~30-150 p/ mao direita). CALIBRE por dedo depois.
 // menor = aberto no LOGICO; com REV_* a inversao cuida do sentido fisico.
-const int THUMB_MIN = 40,  THUMB_MAX = 140;   // polegar
-const int INDEX_MIN = 40,  INDEX_MAX = 140;   // indicador
-const int OTHER_MIN = 40,  OTHER_MAX = 140;   // tres dedos
+const int THUMB_MIN = 15,  THUMB_MAX = 165;   // polegar  (curso maior = mais amplitude)
+const int INDEX_MIN = 15,  INDEX_MAX = 165;   // indicador
+const int OTHER_MIN = 15,  OTHER_MAX = 165;   // tres dedos
 
 // ---------- Parametros de controle ----------
-const uint8_t STEP_BIG   = 8;     // graus/ciclo Index/Other (movimento rapido)
-const uint8_t STEP_THUMB = 5;     // graus/ciclo polegar (SEM PPTC -> um pouco mais suave)
+const uint8_t STEP_BIG   = 10;    // graus/ciclo Index/Other (movimento mais firme/rapido)
+const uint8_t STEP_THUMB = 7;     // graus/ciclo polegar
 const uint16_t TICK_MS   = 20;    // periodo do loop de controle (50 Hz)
 const uint16_t WDT_MS    = 1000;  // sem heartbeat por este tempo -> fail-safe = abrir
-const uint16_t IDLE_MS   = 800;   // parado neste tempo apos atingir alvo -> detach()
+const uint16_t IDLE_MS   = 800;   // (só usado se DETACH_WHEN_IDLE = true)
+// Com fonte externa 5-6V o servo SEGURA a posição firme -> detach desligado.
+// (Se voltar a oscilar, é sinal de GND comum solto ou energia fraca.)
+const bool DETACH_WHEN_IDLE = false;
 
 // ---------- Estado ----------
 Servo svThumb, svIndex, svOther;
@@ -145,7 +147,6 @@ void goSafeOpen() {            // fail-safe: abre a mao e marca SAFE
 // --- parser de comando ------------------------------------------------------
 void handleLine(char* s) {
   if (s[0] == '\0') return;            // ignora linha vazia
-  wdt_reset();
 
   switch (s[0]) {
     case 'H':                          // heartbeat
@@ -203,12 +204,20 @@ void controlTick() {
     reachedAt = 0;
   } else {
     if (reachedAt == 0) reachedAt = now;
-    // anti-stall / anti-jitter: detach apos ficar parado IDLE_MS no alvo
-    if (now - reachedAt > IDLE_MS) detachAll();
+    // detach por ociosidade fica DESLIGADO por padrao (DETACH_WHEN_IDLE=false):
+    // como os dedos tem mola de retorno, soltar o PWM faz o dedo voltar sozinho.
+    if (DETACH_WHEN_IDLE && now - reachedAt > IDLE_MS) detachAll();
   }
 }
 
 void setup() {
+  // IMPORTANTE: desliga o watchdog de HW logo no inicio. Em clones com bootloader
+  // ANTIGO (CH340), um WDT ligado trava a regravacao ("not in sync") e pode causar
+  // bootloop. A seguranca de fail-safe fica por conta do HEARTBEAT (ver loop()),
+  // que NAO depende do watchdog de hardware.
+  MCUSR = 0;
+  wdt_disable();
+
   Serial.begin(115200);
   // posicao inicial segura = mao aberta
   curThumb = tgtThumb = THUMB_MIN;
@@ -216,12 +225,10 @@ void setup() {
   curOther = tgtOther = OTHER_MIN;
   attachAll();
   lastHeartbeat = millis();
-  wdt_enable(WDTO_2S);          // watchdog de HW: se o loop travar > 2s, reseta a placa
   Serial.println(F("R"));       // banner de ready
 }
 
 void loop() {
-  wdt_reset();
   unsigned long now = millis();
 
   // 1) leitura serial nao-bloqueante, linha a linha

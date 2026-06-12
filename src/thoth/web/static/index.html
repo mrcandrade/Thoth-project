@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mendes — Painel de Controle</title>
+  <title>Marco — Painel de Controle</title>
   <style>
     :root {
       --bg: #0e1116; --panel: #171b22; --line: #262c36;
@@ -28,6 +28,7 @@
                 color: var(--mut); margin: 0 0 10px; }
     #cam { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 16/9; object-fit: contain; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
     .stat .k { color: var(--mut); font-size: 12px; }
     .stat .v { font-size: 18px; font-weight: 600; margin-top: 2px; }
@@ -39,38 +40,53 @@
     .estop { grid-column: 1 / -1; background: var(--danger); border-color: var(--danger);
              color: #fff; font-size: 16px; padding: 16px; }
     .estop:hover { background: #b62a27; }
+    .mirror { width: 100%; margin-top: 10px; padding: 14px; }
+    .mirror.on { background: rgba(46,160,67,.15); border-color: var(--ok); color: var(--ok); }
     #transcript { font-size: 15px; min-height: 22px; }
-    #log { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto;
+    #log { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto;
            font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
     #log li { padding: 4px 6px; border-bottom: 1px solid var(--line); color: var(--mut); }
     #log li b { color: var(--accent); }
     .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #1f2630; color: var(--mut); }
-    .badge.listen { background: rgba(46,160,67,.15); color: var(--ok); }
+    .badge.on { background: rgba(46,160,67,.15); color: var(--ok); }
     .row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .finger { margin-bottom: 12px; }
+    .finger label { display: flex; justify-content: space-between; font-size: 13px; color: var(--mut); margin-bottom: 4px; }
+    .finger label span { color: var(--txt); font-weight: 600; }
+    .finger input[type=range] { width: 100%; accent-color: var(--accent); }
   </style>
 </head>
 <body>
   <header>
     <span id="conn" class="dot"></span>
-    <h1>Mendes</h1>
-    <span class="sub">Painel de Controle · mão protética HACKberry</span>
-    <span id="listenBadge" class="badge" style="margin-left:auto">—</span>
+    <h1>Marco</h1>
+    <span class="sub">Painel de Controle</span>
+    <span id="mirrorBadge" class="badge" style="margin-left:auto">espelho off</span>
   </header>
 
   <main>
-    <!-- Coluna esquerda: visão -->
+    <!-- Coluna esquerda: visão + espelhar -->
     <section class="panel">
       <h2>Visão Computacional</h2>
-      <img id="cam" src="/video" alt="stream da câmera" />
+      <img id="cam" src="/video" alt="stream da camera" />
+
+      <button id="mirrorBtn" class="mirror" onclick="toggleMirror()">Espelhar minha mão — LIGAR</button>
+
+      <div class="grid3" style="margin-top:10px">
+        <div class="stat"><span class="k">Polegar</span><div class="v" id="mfT">—</div></div>
+        <div class="stat"><span class="k">Indicador</span><div class="v" id="mfI">—</div></div>
+        <div class="stat"><span class="k">Três dedos</span><div class="v" id="mfO">—</div></div>
+      </div>
+
       <div class="row" style="margin-top:10px">
         <span class="stat" style="flex:1"><span class="k">Última pessoa reconhecida</span>
           <div class="v" id="person">—</div></span>
-        <span class="stat" style="width:120px"><span class="k">FPS</span>
+        <span class="stat" style="width:110px"><span class="k">FPS</span>
           <div class="v" id="fps">0</div></span>
       </div>
     </section>
 
-    <!-- Coluna direita: controle + status -->
+    <!-- Coluna direita: status + controle -->
     <section>
       <div class="panel" style="margin-bottom:16px">
         <h2>Status da Mão</h2>
@@ -85,19 +101,36 @@
       <div class="panel" style="margin-bottom:16px">
         <h2>Controle Manual</h2>
         <div class="btns">
-          <button onclick="cmd('open')">✋ Abrir</button>
-          <button onclick="cmd('fist')">✊ Punho</button>
-          <button onclick="cmd('point')">👉 Apontar</button>
-          <button onclick="cmd('pinch')">🤏 Pinça</button>
-          <button onclick="cmd('shake')">🤝 Apertar</button>
-          <button onclick="loadStatus()">↻ Status</button>
-          <button class="estop" onclick="estop()">■ PARADA DE EMERGÊNCIA</button>
+          <button onclick="cmd('open')">Abrir</button>
+          <button onclick="cmd('fist')">Punho</button>
+          <button onclick="cmd('point')">Apontar</button>
+          <button onclick="cmd('pinch')">Pinça</button>
+          <button onclick="cmd('shake')">Apertar</button>
+          <button onclick="loadStatus()">Status</button>
+          <button class="estop" onclick="estop()">PARADA DE EMERGÊNCIA</button>
         </div>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
+        <h2>Controle por Dedo</h2>
+        <div class="finger">
+          <label>Polegar <span id="vT">15</span>°</label>
+          <input type="range" id="sT" min="15" max="165" value="15" />
+        </div>
+        <div class="finger">
+          <label>Indicador <span id="vI">15</span>°</label>
+          <input type="range" id="sI" min="15" max="165" value="15" />
+        </div>
+        <div class="finger">
+          <label>Três dedos <span id="vO">15</span>°</label>
+          <input type="range" id="sO" min="15" max="165" value="15" />
+        </div>
+        <div style="color:var(--mut);font-size:12px">0° ≈ aberto · 180° ≈ fechado (firmware limita a 15–165)</div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
         <h2>Voz</h2>
-        <div id="transcript" class="mut">Diga “Mendes …” para ativar.</div>
+        <div id="transcript" class="mut">Diga "Marco ..." para ativar.</div>
       </div>
 
       <div class="panel">
@@ -126,6 +159,46 @@
       try { await fetch("/health"); } catch (e) {}
     }
 
+    // ----- Espelhar minha mão (câmera -> braço) -----
+    let mirrorOn = false;
+    async function toggleMirror() {
+      try {
+        await fetch("/mirror", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !mirrorOn }),
+        });
+      } catch (e) { alert(e); }
+    }
+
+    // ----- Controle por dedo (sliders) -----
+    const sliders = { thumb: $("sT"), index: $("sI"), other: $("sO") };
+    const slLabel = { thumb: $("vT"), index: $("vI"), other: $("vO") };
+    let lastSliderInput = 0;
+    let angTimer = null;
+
+    function readAngles() {
+      return { thumb: +sliders.thumb.value, index: +sliders.index.value, other: +sliders.other.value };
+    }
+    function refreshSliderLabels() {
+      for (const k of ["thumb", "index", "other"]) slLabel[k].textContent = sliders[k].value;
+    }
+    async function sendAngles() {
+      try {
+        await fetch("/angles", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(readAngles()),
+        });
+      } catch (e) {}
+    }
+    for (const k of ["thumb", "index", "other"]) {
+      sliders[k].addEventListener("input", () => {
+        lastSliderInput = Date.now();
+        refreshSliderLabels();
+        if (!angTimer) angTimer = setTimeout(() => { angTimer = null; sendAngles(); }, 60);
+      });
+      sliders[k].addEventListener("change", () => { lastSliderInput = Date.now(); sendAngles(); });
+    }
+
     function fmtTime(ts) {
       const d = new Date(ts * 1000);
       return d.toLocaleTimeString("pt-BR");
@@ -138,15 +211,33 @@
         $("handMode").textContent = mao.modo || "—";
         $("angTI").textContent = (mao.thumb ?? "—") + " / " + (mao.index ?? "—");
         $("angO").textContent = mao.other ?? "—";
+        // sincroniza os sliders com a posição real (quando o usuário não arrasta)
+        if (Date.now() - lastSliderInput > 1500) {
+          if (mao.thumb != null) sliders.thumb.value = mao.thumb;
+          if (mao.index != null) sliders.index.value = mao.index;
+          if (mao.other != null) sliders.other.value = mao.other;
+          refreshSliderLabels();
+        }
       } else {
         $("handConn").textContent = "Sem mão";
       }
       $("person").textContent = s.ultima_pessoa || "—";
       $("fps").textContent = s.fps ?? 0;
-      const badge = $("listenBadge");
-      if (s.aguardando_comando) { badge.textContent = "● aguardando comando"; badge.className = "badge listen"; }
-      else if (s.escutando) { badge.textContent = "● escutando"; badge.className = "badge listen"; }
-      else { badge.textContent = "voz off"; badge.className = "badge"; }
+
+      // espelho
+      const esp = s.espelho || {};
+      mirrorOn = !!esp.ligado;
+      const mb = $("mirrorBtn");
+      mb.textContent = mirrorOn ? "Espelhar minha mão — DESLIGAR" : "Espelhar minha mão — LIGAR";
+      mb.className = "mirror" + (mirrorOn ? " on" : "");
+      const badge = $("mirrorBadge");
+      badge.textContent = mirrorOn ? (esp.mao_vista ? "espelho: mão detectada" : "espelho: mostre a mão") : "espelho off";
+      badge.className = "badge" + (mirrorOn ? " on" : "");
+      const f = esp.flex;
+      $("mfT").textContent = f ? f[0] + "%" : "—";
+      $("mfI").textContent = f ? f[1] + "%" : "—";
+      $("mfO").textContent = f ? f[2] + "%" : "—";
+
       if (s.transcricao) $("transcript").textContent = "“" + s.transcricao + "”";
 
       const log = $("log");

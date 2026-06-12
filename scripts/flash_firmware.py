@@ -84,7 +84,9 @@ def main() -> None:
     ap.add_argument("--port", required=True, help="porta serial (ex.: COM5, /dev/ttyUSB0)")
     ap.add_argument("--fqbn", default="arduino:avr:nano", help="placa (Mk2 = Arduino Nano)")
     ap.add_argument("--old-bootloader", action="store_true",
-                    help="use se a gravação falhar (clones de Nano usam o bootloader antigo)")
+                    help="força SÓ o bootloader antigo (atmega328old)")
+    ap.add_argument("--new-bootloader", action="store_true",
+                    help="força SÓ o bootloader novo (Nano original)")
     ap.add_argument("--sketch", default=str(SKETCH),
                     help="pasta do sketch a gravar (padrão: firmware/hackberry_serial)")
     args = ap.parse_args()
@@ -109,13 +111,23 @@ def main() -> None:
         return run([CLI, "upload", "--fqbn", fqbn, "-p", args.port, str(sketch_dir)])
 
     base = args.fqbn
-    fqbn = base + (":cpu=atmega328old" if args.old_bootloader else "")
-    rc = compile_and_upload(fqbn)
+    old = base + ":cpu=atmega328old"
+    # Este projeto usa um Nano clone (CH340 / bootloader ANTIGO). Tentamos o antigo
+    # PRIMEIRO (evita os 10 warnings 'not in sync') e o novo como fallback.
+    if args.old_bootloader:
+        order = [old]
+    elif args.new_bootloader:
+        order = [base]
+    else:
+        order = [old, base]
 
-    # Auto-fallback: clones de Nano (CH340) usam o bootloader antigo (57600).
-    if rc != 0 and not args.old_bootloader:
-        print("\nUpload falhou. Tentando com o BOOTLOADER ANTIGO (comum em clones CH340)…\n")
-        rc = compile_and_upload(base + ":cpu=atmega328old")
+    rc = 1
+    for i, fqbn in enumerate(order):
+        if i > 0:
+            print("\nNão sincronizou — tentando o outro bootloader…\n")
+        rc = compile_and_upload(fqbn)
+        if rc == 0:
+            break
 
     print("\nOK: firmware gravado." if rc == 0 else "\nFALHA na gravação.")
     sys.exit(rc)

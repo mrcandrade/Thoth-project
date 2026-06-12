@@ -1,7 +1,6 @@
-"""Baixa os modelos .task do MediaPipe Tasks para models/mediapipe/.
+"""Baixa o modelo de rastreamento da mão do MediaPipe para models/mediapipe/.
 
-Fonte: https://ai.google.dev/edge/mediapipe (Google). Os arquivos NÃO são
-versionados no Git (ver .gitignore).
+Fonte: https://ai.google.dev/edge/mediapipe (Google). Não é versionado no Git.
 """
 from __future__ import annotations
 
@@ -11,10 +10,7 @@ from pathlib import Path
 DEST = Path(__file__).resolve().parents[1] / "models" / "mediapipe"
 
 MODELS = {
-    "face_detector": "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.task",
-    "face_landmarker": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
     "hand_landmarker": "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-    "gesture_recognizer": "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
 }
 
 

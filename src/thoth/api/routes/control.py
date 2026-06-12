@@ -4,11 +4,31 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from thoth.actuation import motion_primitives as motion
-from thoth.api.schemas import CommandRequest, CommandResponse
+from thoth.api.schemas import AnglesRequest, CommandRequest, CommandResponse, MirrorRequest
 from thoth.core.state import get_state
-from thoth.safety.limits import VALID_GESTURES
+from thoth.safety.limits import VALID_GESTURES, clamp_all
 
 router = APIRouter(tags=["control"])
+
+
+@router.post("/mirror", response_model=CommandResponse)
+async def mirror(req: MirrorRequest) -> CommandResponse:
+    """Liga/desliga o espelhamento da mão (câmera -> braço)."""
+    state = get_state()
+    state.mirror_enabled = req.enabled
+    state.push_event("espelho", {"ligado": req.enabled})
+    return CommandResponse(ok=True, detalhe=f"espelho {'ligado' if req.enabled else 'desligado'}")
+
+
+@router.post("/angles", response_model=CommandResponse)
+async def angles(req: AnglesRequest) -> CommandResponse:
+    """Controle por dedo: define os ângulos (polegar, indicador, três dedos)."""
+    hand = get_state().hand
+    if hand is None:
+        raise HTTPException(status_code=503, detail="mão não conectada")
+    t, i, o = clamp_all(req.thumb, req.index, req.other)  # clampa aos limites antes de enviar
+    ack = await hand.set_angles(t, i, o)
+    return CommandResponse(ok=True, detalhe=f"G:{t},{i},{o} ({ack})")
 
 
 @router.post("/command", response_model=CommandResponse)

@@ -12,8 +12,8 @@
 
 #include <Servo.h>
 
-// Pinos candidatos (PWM/IO comuns na placa Mk2). D5=indicador, D9=polegar (conhecidos).
-const uint8_t PINS[] = {3, 5, 6, 9, 10, 11};
+// Varre uma faixa ampla de pinos digitais (a Servo lib funciona em qualquer um).
+const uint8_t PINS[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 const uint8_t N = sizeof(PINS) / sizeof(PINS[0]);
 
 Servo s;

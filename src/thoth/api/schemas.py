@@ -10,6 +10,18 @@ class CommandRequest(BaseModel):
     gesto: str = Field(..., description=f"Um de: {sorted(VALID_GESTURES)}")
 
 
+class AnglesRequest(BaseModel):
+    """Ângulos lógicos por dedo (o firmware aplica o clamp aos limites)."""
+    thumb: int = Field(..., ge=0, le=180)
+    index: int = Field(..., ge=0, le=180)
+    other: int = Field(..., ge=0, le=180)
+
+
+class MirrorRequest(BaseModel):
+    """Liga/desliga o modo 'espelhar minha mão' (câmera -> servos)."""
+    enabled: bool
+
+
 class CommandResponse(BaseModel):
     ok: bool
     detalhe: str

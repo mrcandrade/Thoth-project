@@ -51,9 +51,21 @@ async def lifespan(app: FastAPI):
             own_hand = True
         except Exception as exc:  # noqa: BLE001
             log.warning("Mão não conectada na API (%s).", exc)
+
+    # Loop de espelhamento da mão (câmera -> servos), iniciado em background.
+    mirror_task = None
+    try:
+        from thoth.perception.vision.mirror import mirror_loop
+
+        mirror_task = asyncio.create_task(mirror_loop(settings), name="mirror")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Espelho indisponível (%s).", exc)
+
     try:
         yield
     finally:
+        if mirror_task is not None:
+            mirror_task.cancel()
         if own_hand and state.hand is not None:
             try:
                 await state.hand.stop()

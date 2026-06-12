@@ -10,9 +10,9 @@ Convenção de ângulos: menor = ABERTO/ESTENDIDO ; maior = FLEXIONADO/FECHADO.
 from __future__ import annotations
 
 # --- Limites de ângulo por servo (graus) — curso seguro (espelha o firmware) ---
-THUMB_MIN, THUMB_MAX = 40, 140
-INDEX_MIN, INDEX_MAX = 40, 140
-OTHER_MIN, OTHER_MAX = 40, 140
+THUMB_MIN, THUMB_MAX = 15, 165
+INDEX_MIN, INDEX_MAX = 15, 165
+OTHER_MIN, OTHER_MAX = 15, 165
 
 LIMITS: dict[str, tuple[int, int]] = {
     "thumb": (THUMB_MIN, THUMB_MAX),

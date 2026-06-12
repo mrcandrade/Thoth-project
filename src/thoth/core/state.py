@@ -32,6 +32,11 @@ class AppState:
     awaiting_command: bool = False
     fps: float = 0.0
 
+    # Modo "espelhar minha mão" (câmera -> servos)
+    mirror_enabled: bool = False
+    mirror_flex: tuple | None = None   # (polegar%, indicador%, três dedos%)
+    mirror_hand_seen: bool = False
+
     # Log de eventos recentes (para o dashboard).
     events: deque = field(default_factory=lambda: deque(maxlen=120))
 
@@ -70,6 +75,11 @@ class AppState:
             "escutando": self.listening,
             "aguardando_comando": self.awaiting_command,
             "fps": round(self.fps, 1),
+            "espelho": {
+                "ligado": self.mirror_enabled,
+                "mao_vista": self.mirror_hand_seen,
+                "flex": self.mirror_flex,
+            },
             "eventos": list(self.events)[-30:],
         }
 

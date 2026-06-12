@@ -48,6 +48,16 @@ class HandLink:
         self.last_status: HandStatus | None = None
 
     # ---- ciclo de vida -----------------------------------------------------
+    def _close_writer(self) -> None:
+        """Fecha o transporte serial liberando a porta (evita 'Acesso negado')."""
+        if self._writer is not None:
+            try:
+                self._writer.close()
+            except Exception:  # noqa: BLE001
+                pass
+        self._writer = None
+        self._reader = None
+
     async def connect(self) -> None:
         """Conecta, espera o banner 'R' e dispara reader + heartbeat."""
         import serial_asyncio  # pip install pyserial-asyncio  (import adiado)
@@ -67,7 +77,11 @@ class HandLink:
                 ]
                 log.info("HandLink conectado em %s", self.port)
                 return
+            except asyncio.CancelledError:
+                self._close_writer()  # libera a porta se o connect for cancelado (timeout)
+                raise
             except Exception as exc:  # noqa: BLE001
+                self._close_writer()  # NÃO segura o handle da porta entre tentativas
                 log.warning("Falha ao conectar (%s); retry em %.1fs", exc, backoff)
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 5.0)
@@ -143,7 +157,8 @@ class HandLink:
                 log.warning("status malformado: %r", line)
         # ACK/ERR resolvem o future do comando em voo
         if self._ack_waiter and not self._ack_waiter.done():
-            if line.startswith("E:"):
+            # E:1:range = fora do limite, mas o firmware AINDA aplicou (clamp) -> não é fatal.
+            if line.startswith("E:") and not line.startswith("E:1"):
                 self._ack_waiter.set_exception(RuntimeError(line))
             else:
                 self._ack_waiter.set_result(line)

@@ -1,56 +1,35 @@
 [project]
 name = "thoth"
 version = "0.1.0"
-description = "Assistente robótico multiagente para a mão protética HACKberry"
+description = "Controle web da mão protética HACKberry: comandos por serial + espelhamento da mão por visão computacional"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0-or-later" }  # firmware deriva do sketch HACKberry (GPLv3)
 authors = [{ name = "Marco Aurelio Andrade" }]
 readme = "README.md"
 dependencies = [
-    # --- Cognição / agentes ---
-    "agno>=2.6,<3",                  # framework multiagente (ex-Phidata); API v2.x
-    "anthropic>=0.40",               # Claude (planejamento/diálogo)
-    "groq>=0.13",                    # STT Whisper + visão Llama-4 + texto rápido
-    "cerebras-cloud-sdk>=1.0",       # inferência de altíssima velocidade
-    # --- Percepção: visão ---
+    # --- Visão computacional ---
     "opencv-python>=4.10",           # captura de webcam (cv2.VideoCapture)
-    "mediapipe>=0.10.14",            # Tasks API: face/hand/gesture/pose (.task)
-    "insightface>=0.7.3",            # reconhecimento facial buffalo_l (ArcFace, 512-D)
-    "onnxruntime>=1.18",             # backend do InsightFace (CPU; troque por onnxruntime-gpu se houver CUDA)
-    "face-recognition>=1.3",         # reconhecimento facial simples (dlib, 128-D) — MVP
-    "numpy>=1.26",                   # embeddings, cosine similarity
-    # --- Percepção: áudio ---
-    "openwakeword>=0.6",             # wake word (Apache-2.0)
-    "silero-vad>=5.1",               # VAD neural p/ segmentar fala
-    "sounddevice>=0.4.6",            # captura de microfone
-    "faster-whisper>=1.0",           # STT local de fallback (offline)
-    "pyttsx3>=2.90",                 # TTS offline (SAPI5 no Windows) — voz do Mendes
-    # --- Atuação / hardware ---
+    "mediapipe>=0.10.14",            # Tasks API: HandLandmarker (rastreamento da mão)
+    "numpy>=1.26",                   # vetores / cálculo de flexão dos dedos
+    # --- Atuação / hardware (serial) ---
     "pyserial>=3.5",                 # base serial
-    "pyserial-asyncio>=0.6",         # cliente serial assíncrono (casa com asyncio do Agno)
-    # --- Núcleo / API / config ---
+    "pyserial-asyncio>=0.6",         # cliente serial assíncrono (HandLink)
+    # --- API / web / config ---
     "fastapi>=0.115",                # API REST + lifespan
     "uvicorn[standard]>=0.30",       # servidor ASGI (inclui websockets)
-    "websockets>=12.0",              # telemetria em tempo real
-    "pydantic>=2.7",                 # modelos de dados
-    "pydantic-settings>=2.3",        # Settings a partir de .env + YAML (injeção de config)
+    "websockets>=12.0",              # telemetria em tempo real (/ws)
+    "pydantic>=2.7",                 # modelos de request/response
+    "pydantic-settings>=2.3",        # Settings a partir de .env + YAML
     "pyyaml>=6.0",                   # leitura dos configs/*.yaml
     "loguru>=0.7",                   # logging estruturado
-    "anyio>=4.4",                    # primitivas async do event bus
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
-    "pytest-cov>=5.0",
     "ruff>=0.5",
-    "mypy>=1.10",
-    "jupyter>=1.0",                  # notebooks/ de calibração
 ]
-
-[project.scripts]
-thoth = "thoth.__main__:main"        # `thoth` na linha de comando == python -m thoth
 
 [build-system]
 requires = ["hatchling"]
