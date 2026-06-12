@@ -1,6 +1,6 @@
 <div align="center">
 
-# Projeto Thoth — Mão Robótica HACKberry
+# Projeto Thoth — Mão Robótica 
 
 **Controle da mão protética HACKberry por painel web + espelhamento da mão por visão computacional**
 
