@@ -37,6 +37,7 @@ Este é um projeto acadêmico e de pesquisa cujo objetivo de longo prazo é dese
 - **Parceria institucional:** [Enfitec Jr.](https://enfitecjunior.com/) — Empresa Júnior de Engenharia Física da UFRGS
 - **Apoio acadêmico e técnico:** Prof. **Mauricio Tosin** — apoio acadêmico/técnico e cessão de **equipamentos de EMG do IF-UFRGS** · [Currículo Lattes](http://lattes.cnpq.br/8031556056127117)
 - **Vínculo:** CTA — Centro de Tecnologia Acadêmica (Instituto de Física, UFRGS)
+- **Software e visão computacional concebidos e desenvolvidos no [FiSi Lab](https://github.com/FiSiLabUFRGS)** — Laboratório de Física, IA e Sistemas Inteligentes (Instituto de Física, UFRGS): "o laboratório onde física e inteligência artificial se encontram para resolver problemas reais" (frentes: IA aplicada, robótica e controle, interface cérebro-máquina, prototipagem). Este projeto consta como `ProjectThoth` no laboratório.
 
 ---
 
@@ -1892,6 +1893,7 @@ Este módulo é uma entrega concreta dentro de uma **visão de pesquisa mais amp
 - **Universidade Federal do Rio Grande do Sul (UFRGS)** — instituição.
 - **Enfitec Jr.** — Empresa Júnior de Engenharia Física (parceria): https://enfitecjunior.com/
 - **CTA — Centro de Tecnologia Acadêmica (IF-UFRGS)** — apoio.
+- **[FiSi Lab](https://github.com/FiSiLabUFRGS)** — Laboratório de Física, IA e Sistemas Inteligentes (Instituto de Física, UFRGS): **concepção e desenvolvimento do software e da visão computacional** deste projeto (catalogado como `ProjectThoth` no laboratório).
 - **Marco Aurelio Andrade** — idealização: https://www.linkedin.com/in/-marcoandrade
 - **Prof. Mauricio Tosin** — apoio acadêmico/técnico e equipamentos de EMG do IF-UFRGS: http://lattes.cnpq.br/8031556056127117
 - **exiii Inc. / Mission ARM Japan** — pela mão protética open-source **HACKberry** (repositório `mission-arm/HACKberry`).
