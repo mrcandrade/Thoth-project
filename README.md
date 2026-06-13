@@ -4,7 +4,7 @@
 
 **Controle da mão protética HACKberry por painel web + espelhamento da mão por visão computacional**
 
-Universidade Federal do Rio Grande do Sul (UFRGS) · Enfitec Jr. (Engenharia Física) · CTA — Centro de Tecnologia Acadêmica (IF-UFRGS)
+Universidade Federal do Rio Grande do Sul (UFRGS) · Enfitec Jr. (Engenharia Física) · CTA — Centro de Tecnologia Acadêmica (IF-UFRGS) · FiSi Lab — Laboratório de Física, IA e Sistemas Inteligentes
 
 </div>
 
