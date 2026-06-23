@@ -87,13 +87,29 @@ class HandLink:
                 backoff = min(backoff * 2, 5.0)
 
     async def _await_ready(self, timeout: float) -> None:
+        """Espera a placa ficar pronta.
+
+        Aceita o banner de boot 'R' (quando a placa reseta ao abrir a porta) OU,
+        se a placa já estiver rodando e silenciosa (FTDI/Boarduino nem sempre
+        reseta na abertura), sonda com '?' e aceita qualquer resposta válida do
+        firmware (R / S: / A: / E:). Assim o handshake não depende do auto-reset.
+        """
         loop = asyncio.get_event_loop()
         deadline = loop.time() + timeout
+        probed = False
         while loop.time() < deadline:
-            line = await asyncio.wait_for(self._reader.readline(), timeout=timeout)
-            if line.strip() == b"R":
+            try:
+                line = await asyncio.wait_for(self._reader.readline(), timeout=1.0)
+            except asyncio.TimeoutError:
+                if not probed and self._writer is not None:
+                    self._writer.write(b"?\n")  # provoca uma resposta da placa
+                    await self._writer.drain()
+                    probed = True
+                continue
+            s = line.strip()
+            if s and s[:1] in (b"R", b"S", b"A", b"E"):  # banner ou linha do protocolo
                 return
-        raise TimeoutError("banner 'R' não recebido")
+        raise TimeoutError("placa não respondeu (sem banner 'R' nem resposta a '?')")
 
     async def close(self) -> None:
         for t in self._tasks:

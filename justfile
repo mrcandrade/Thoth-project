@@ -14,6 +14,14 @@ models:
 web:
     python scripts/web.py
 
+# baixa a voz PT-BR do Piper (TTS do agente)
+piper:
+    python scripts/download_piper.py
+
+# conversa por voz com o Marco (Fase 1 do agente)
+voz:
+    python scripts/voice_chat.py
+
 # compila e grava o firmware (arduino-cli)
 flash port="COM17":
     python scripts/flash_firmware.py --port {{port}}

@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from thoth.actuation.serial_client import HandLink
-from thoth.api.routes import control, health, telemetry
+from thoth.api.routes import agent, control, health, telemetry
 from thoth.core.config import get_settings
 from thoth.core.logging import setup_logging
 from thoth.core.state import get_state
@@ -81,6 +81,7 @@ app = FastAPI(title="Mendes API", version="0.1.0", lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(control.router)
 app.include_router(telemetry.router)
+app.include_router(agent.router)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -90,3 +91,9 @@ if STATIC_DIR.exists():
 async def index() -> FileResponse:
     """Serve o dashboard de controle."""
     return FileResponse(str(STATIC_DIR / "index.html"))
+
+
+@app.get("/agent")
+async def agent_page() -> FileResponse:
+    """Serve o Modo Agente (orbe reativa + voz no navegador)."""
+    return FileResponse(str(STATIC_DIR / "agent.html"))

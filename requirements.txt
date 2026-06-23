@@ -16,3 +16,13 @@ pydantic>=2.7
 pydantic-settings>=2.3
 pyyaml>=6.0
 loguru>=0.7
+# --- Agente conversacional (voz) ---
+openai>=1.40
+sounddevice>=0.4.6
+soundfile>=0.12
+webrtcvad-wheels>=2.0.14
+edge-tts>=6.1
+piper-tts>=1.2
+faster-whisper>=1.0
+wikipedia>=1.4
+# opcional (skill de música): pip install pywhatkit

@@ -9,7 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Raiz do repositório (…/src/thoth/core/config.py -> sobe 3 níveis)
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
 
     # --- Hardware / serial (Arduino) ---
-    serial_port: str = "COM17"
+    serial_port: str = "COM19"     # FTDI Boarduino (a porta pode variar; confirme com check_devices.py)
     serial_baud: int = 115200
     serial_heartbeat_ms: int = 300
 
@@ -43,8 +43,48 @@ class Settings(BaseSettings):
     api_port: int = 8000
     log_level: str = "INFO"
 
+    # --- Agente conversacional (Fase 1: voz) ---
+    assistant_name: str = "Marco"
+    # Cérebro (LLM): endpoint OpenAI-compatible, PLUGÁVEL.
+    # provider = cerebras | groq | custom. Para o Rio-3.5-397B, use provider=custom
+    # + llm_base_url do seu endpoint vLLM (OpenAI-compatible) + llm_model.
+    llm_provider: str = "groq"
+    llm_model: str = "openai/gpt-oss-120b"  # id no provedor (fiel a ferramentas)
+    llm_base_url: str | None = None         # override (ex.: http://SEU_VLLM:8000/v1)
+    cerebras_api_key: str | None = None
+    groq_api_key: str | None = None
+    # Visão (VLM multimodal): usado pelas skills de visão (ver_cena, ler_texto, jokenpô)
+    vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    # Cidade padrão p/ a skill de clima quando o usuário não disser
+    default_city: str = "Porto Alegre"
+    # Ouvido (STT): groq (Whisper na nuvem) | local (faster-whisper)
+    stt_provider: str = "groq"
+    stt_model: str = "whisper-large-v3"
+    # Voz (TTS): edge (online, neural, PT-BR) | piper (offline, fallback)
+    tts_provider: str = "edge"
+    edge_voice: str = "pt-BR-ThalitaMultilingualNeural"  # neural; alt: AntonioNeural/FranciscaNeural
+    edge_rate: str = "+0%"                  # velocidade da fala (ex.: "+10%", "-5%")
+    edge_pitch: str = "+0Hz"               # tom da fala (ex.: "+20Hz", "-10Hz")
+    piper_voice: str = "pt_BR-faber-medium"  # usado só com tts_provider=piper
+    mic_device: str | None = None           # vazio = microfone padrão do Windows
+
     # Overrides declarativos de configs/<env>.yaml (não vêm do .env).
     extra_yaml: dict = Field(default_factory=dict)
+
+    @field_validator(
+        "llm_base_url", "mic_device", "cerebras_api_key", "groq_api_key", mode="before"
+    )
+    @classmethod
+    def _blank_or_comment_to_none(cls, v):
+        """Trata valor vazio ou comentário inline (# ...) no .env como None.
+
+        Evita que uma linha tipo `MIC_DEVICE=   # comentário` seja lida com o
+        comentário como valor.
+        """
+        if v is None:
+            return None
+        s = str(v).strip()
+        return None if (s == "" or s.startswith("#")) else s
 
     @property
     def heartbeat_period(self) -> float:

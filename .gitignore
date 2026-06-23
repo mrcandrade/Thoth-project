@@ -1,0 +1,41 @@
+# Ambiente / segredos
+.venv/
+venv/
+.env
+*.key
+
+# Dados privados (LGPD) e pesos de modelos — NÃO versionar
+data/known_faces/*
+data/embeddings/*
+data/logs/*
+data/encodings.pkl
+data/*.json                 # memória do agente e artefatos de runtime
+models/**/*
+!**/.gitkeep                 # mantém a estrutura de pastas vazia
+
+# Caches Python e ferramentas
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# Amostras de áudio / temporários
+samples_voz/
+_tmp_*.py
+
+# Build do pacote
+build/
+dist/
+
+# Artefatos Arduino
+firmware/**/build/
+*.hex
+
+# IDE
+.vscode/
+.idea/

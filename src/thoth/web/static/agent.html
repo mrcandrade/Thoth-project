@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marco — Modo Agente</title>
+  <style>
+    :root {
+      --bg: #0e1116; --panel: #171b22; --line: #262c36;
+      --txt: #e6edf3; --mut: #8b949e; --accent: #2f81f7;
+      --ok: #2ea043; --warn: #d29922; --danger: #da3633;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+           background: radial-gradient(1200px 800px at 50% -10%, #131a26, var(--bg));
+           color: var(--txt); display: flex; flex-direction: column; }
+    header { display: flex; align-items: center; gap: 12px; padding: 14px 22px;
+             border-bottom: 1px solid var(--line); background: rgba(23,27,34,.7); }
+    header h1 { font-size: 19px; margin: 0; font-weight: 600; }
+    header .sub { color: var(--mut); font-size: 13px; }
+    header a { margin-left: auto; color: var(--mut); text-decoration: none; font-size: 13px;
+               border: 1px solid var(--line); padding: 8px 12px; border-radius: 8px; }
+    header a:hover { border-color: var(--accent); color: var(--txt); }
+    main { flex: 1; display: flex; flex-direction: column; align-items: center;
+           justify-content: center; gap: 22px; padding: 24px; }
+    #orb { width: min(60vmin, 420px); height: min(60vmin, 420px); }
+    #stateLabel { font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
+                  color: var(--mut); min-height: 18px; }
+    .bubble { max-width: 680px; width: 100%; text-align: center; }
+    #youText { color: var(--mut); font-size: 15px; min-height: 20px; }
+    #marcoText { color: var(--txt); font-size: 19px; line-height: 1.5; min-height: 28px;
+                 margin-top: 6px; }
+    .controls { display: flex; gap: 12px; align-items: center; }
+    button { cursor: pointer; border: 1px solid var(--line); background: #1f2630;
+             color: var(--txt); padding: 13px 22px; border-radius: 10px; font-size: 15px;
+             font-weight: 600; }
+    button:hover { border-color: var(--accent); }
+    button.live { background: rgba(218,54,51,.15); border-color: var(--danger); color: #ff8b88; }
+    .hint { color: var(--mut); font-size: 12px; text-align: center; max-width: 520px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mut); display: inline-block; }
+    .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .dot.off { background: var(--danger); }
+  </style>
+</head>
+<body>
+  <header>
+    <span id="conn" class="dot"></span>
+    <h1>Marco</h1>
+    <span class="sub">Modo Agente</span>
+    <a href="/">← Painel de controle</a>
+  </header>
+
+  <main>
+    <canvas id="orb" width="440" height="440"></canvas>
+    <div id="stateLabel">desligado</div>
+    <div class="bubble">
+      <div id="youText"></div>
+      <div id="marcoText">Clique em "Iniciar conversa" e fale comigo.</div>
+    </div>
+    <div class="controls">
+      <button id="startBtn">Iniciar conversa</button>
+    </div>
+    <div class="hint">
+      Mãos-livres: fale normalmente e faça uma pausa — eu respondo por voz.
+      Enquanto eu falo, seu microfone fica em silêncio para eu não me ouvir.
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // ---------- estado global ----------
+    let ws = null, audioCtx = null, micStream = null;
+    let micAnalyser = null, playbackAnalyser = null;
+    let running = false;
+    let serverState = "idle";          // idle | thinking | speaking (do servidor)
+    let isPlaying = false;             // áudio do Marco tocando localmente
+    let isRecording = false;
+    let recorder = null, recChunks = [];
+    let chosenMime = "audio/webm;codecs=opus";
+
+    // ---------- fila de reprodução (sem emendas) ----------
+    let audioQueue = [], decoding = false, activeSources = 0, nextStartTime = 0;
+    let pendingMeta = null;
+
+    function micGated() {           // meia-duplex: não escuta enquanto fala/pensa
+      return isPlaying || serverState === "thinking" || serverState === "speaking";
+    }
+
+    // ---------- arranque ----------
+    $("startBtn").onclick = () => running ? stop() : start();
+
+    async function start() {
+      if (!window.isSecureContext || !navigator.mediaDevices) {
+        $("marcoText").textContent = "O microfone exige um endereço seguro. Abra por " +
+          "http://127.0.0.1:8000/agent ou http://localhost:8000/agent — não use o IP da rede (ex.: 192.168.x.x).";
+        return;
+      }
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        await audioCtx.resume();
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+      } catch (e) {
+        const ajuda = {
+          NotAllowedError: "Permissão de microfone negada. Clique no cadeado na barra de endereço, " +
+            "permita o Microfone e recarregue. No Windows: Configurações > Privacidade e segurança > " +
+            "Microfone — ligue o acesso e permita o navegador.",
+          NotFoundError: "Nenhum microfone encontrado. Conecte um microfone e tente de novo.",
+          NotReadableError: "O microfone está em uso por outro aplicativo. Feche-o e recarregue a página.",
+        };
+        $("marcoText").textContent = ajuda[e.name] || ("Não consegui acessar o microfone: " + e.message);
+        return;
+      }
+      // grafo de áudio
+      const micSrc = audioCtx.createMediaStreamSource(micStream);
+      micAnalyser = audioCtx.createAnalyser();
+      micAnalyser.fftSize = 1024;
+      micSrc.connect(micAnalyser);                 // só análise (não conecta ao destino)
+      playbackAnalyser = audioCtx.createAnalyser();
+      playbackAnalyser.fftSize = 1024;
+      playbackAnalyser.connect(audioCtx.destination);
+      nextStartTime = audioCtx.currentTime;
+
+      chosenMime = pickMime();
+      connectWS();
+
+      running = true;
+      $("startBtn").textContent = "Encerrar";
+      $("startBtn").classList.add("live");
+      $("youText").textContent = "";
+      $("marcoText").textContent = "Estou ouvindo…";
+      requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      try { recorder && recorder.state !== "inactive" && recorder.stop(); } catch (_) {}
+      try { ws && ws.close(); } catch (_) {}
+      try { micStream && micStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      $("startBtn").textContent = "Iniciar conversa";
+      $("startBtn").classList.remove("live");
+      setStateLabel("desligado");
+    }
+
+    function pickMime() {
+      const prefs = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus",
+                     "audio/webm", "audio/mp4"];
+      for (const m of prefs) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+      }
+      return "audio/webm";
+    }
+
+    // ---------- WebSocket ----------
+    function connectWS() {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${proto}://${location.host}/ws/agent`);
+      ws.binaryType = "arraybuffer";
+      ws.onopen = () => {
+        $("conn").className = "dot on";
+        ws.send(JSON.stringify({ type: "hello", mime: chosenMime }));
+      };
+      ws.onclose = () => { $("conn").className = "dot off"; };
+      ws.onmessage = (e) => {
+        if (typeof e.data === "string") {
+          let m; try { m = JSON.parse(e.data); } catch (_) { return; }
+          handleControl(m);
+        } else {
+          // binário: pertence ao último audio_meta
+          if (pendingMeta) { audioQueue.push(e.data); pendingMeta = null; pumpAudio(); }
+        }
+      };
+    }
+
+    function handleControl(m) {
+      if (m.type === "state") {
+        serverState = m.value;
+        if (m.value === "thinking") { $("marcoText").textContent = "…"; }
+      } else if (m.type === "transcript") {
+        $("youText").textContent = "“" + m.text + "”";
+      } else if (m.type === "reply_text") {
+        if (m.text) $("marcoText").textContent = m.text;
+      } else if (m.type === "audio_meta") {
+        pendingMeta = m;
+        if (m.text && m.seq === 0) $("marcoText").textContent = m.text;
+      } else if (m.type === "error") {
+        $("marcoText").textContent = m.message || "Erro.";
+      }
+    }
+
+    // ---------- reprodução sem emendas (Web Audio) ----------
+    async function pumpAudio() {
+      if (decoding) return;
+      decoding = true;
+      while (audioQueue.length) {
+        const ab = audioQueue.shift();
+        let buffer;
+        try { buffer = await audioCtx.decodeAudioData(ab.slice(0)); }
+        catch (_) { continue; }
+        const startAt = Math.max(audioCtx.currentTime + 0.02, nextStartTime);
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(playbackAnalyser);
+        activeSources++;
+        src.onended = () => { activeSources--; maybeFinishSpeaking(); };
+        src.start(startAt);
+        nextStartTime = startAt + buffer.duration;
+        isPlaying = true;
+      }
+      decoding = false;
+      maybeFinishSpeaking();
+    }
+
+    function maybeFinishSpeaking() {
+      if (activeSources === 0 && audioQueue.length === 0 && !decoding) {
+        isPlaying = false;
+        nextStartTime = audioCtx ? audioCtx.currentTime : 0;
+      }
+    }
+
+    // ---------- VAD por energia + gravação por turno ----------
+    const td = new Uint8Array(1024);
+    function rms(analyser) {
+      analyser.getByteTimeDomainData(td);
+      let s = 0;
+      for (let i = 0; i < td.length; i++) { const v = (td[i] - 128) / 128; s += v * v; }
+      return Math.sqrt(s / td.length);
+    }
+
+    let noiseFloor = 0.01;
+    let voicedMs = 0, silenceMs = 0, recMs = 0, confirmed = false, lastT = 0;
+    const ONSET_MS = 150, HANG_MS = 700, MAX_MS = 15000, BLIP_MS = 350;
+
+    function vadStep(dt) {
+      const level = rms(micAnalyser);
+      if (micGated()) {                 // não escuta enquanto o Marco fala
+        if (isRecording) cancelRecording();
+        voicedMs = silenceMs = 0;
+        return level;
+      }
+      const onThresh = Math.max(0.02, noiseFloor * 2.5);
+      const offThresh = Math.max(0.015, noiseFloor * 1.6);
+      const voiced = level > onThresh;
+
+      if (!isRecording) {
+        // piso de ruído adapta-se devagar no silêncio
+        noiseFloor = noiseFloor * 0.95 + level * 0.05;
+        if (voiced) { voicedMs += dt; if (voicedMs >= 60) startRecording(); }
+        else voicedMs = 0;
+      } else {
+        recMs += dt;
+        if (level > offThresh) { voicedMs += dt; silenceMs = 0; if (voicedMs >= ONSET_MS) confirmed = true; }
+        else { silenceMs += dt; }
+        if (confirmed && silenceMs >= HANG_MS) finishRecording();
+        else if (!confirmed && recMs >= BLIP_MS && silenceMs >= 250) cancelRecording();
+        else if (recMs >= MAX_MS) finishRecording();
+      }
+      return level;
+    }
+
+    function startRecording() {
+      try { recorder = new MediaRecorder(micStream, { mimeType: chosenMime }); }
+      catch (_) { try { recorder = new MediaRecorder(micStream); } catch (e) { return; } }
+      recChunks = [];
+      recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size) recChunks.push(ev.data); };
+      recorder.onstop = () => {
+        if (sendOnStop && recChunks.length && ws && ws.readyState === 1) {
+          ws.send(new Blob(recChunks, { type: chosenMime }));
+        }
+      };
+      recorder.start();
+      isRecording = true; recMs = 0; voicedMs = 0; silenceMs = 0; confirmed = false;
+    }
+
+    let sendOnStop = true;
+    function finishRecording() {
+      sendOnStop = true; stopRec();
+    }
+    function cancelRecording() {     // descarta blip (não envia)
+      sendOnStop = false; stopRec();
+    }
+    function stopRec() {
+      try { recorder && recorder.state !== "inactive" && recorder.stop(); } catch (_) {}
+      isRecording = false; recMs = 0; voicedMs = 0; silenceMs = 0; confirmed = false;
+    }
+
+    // ---------- laço principal: VAD + desenho da orbe ----------
+    function loop(t) {
+      if (!running) return;
+      const dt = lastT ? t - lastT : 16; lastT = t;
+      const micLevel = vadStep(dt);
+
+      // amplitude que move a orbe
+      let amp = 0, mode = "idle";
+      if (isPlaying) { amp = rms(playbackAnalyser); mode = "speaking"; }
+      else if (serverState === "thinking") { mode = "thinking"; }
+      else if (isRecording) { amp = micLevel; mode = "listening"; }
+      else { mode = "idle"; }
+
+      drawOrb(t, amp, mode);
+      updateLabel(mode);
+      requestAnimationFrame(loop);
+    }
+
+    function updateLabel(mode) {
+      const map = { idle: "pronto — pode falar", listening: "ouvindo…",
+                    thinking: "pensando…", speaking: "falando…" };
+      setStateLabel(map[mode] || "");
+    }
+    function setStateLabel(s) { $("stateLabel").textContent = s; }
+
+    // ---------- orbe (canvas) ----------
+    const cv = $("orb"), cx = cv.getContext("2d");
+    const COLORS = {
+      idle:      ["#1f6feb", "#0d2440"],
+      listening: ["#2ea043", "#0e2a18"],
+      thinking:  ["#d29922", "#2a1f08"],
+      speaking:  ["#39d0d8", "#0b2e30"],
+    };
+    let smoothAmp = 0;
+
+    function drawOrb(t, amp, mode) {
+      // ataque rápido, recuo lento (evita tremor)
+      const target = Math.min(1, amp * 3.2);
+      smoothAmp += (target - smoothAmp) * (target > smoothAmp ? 0.5 : 0.12);
+
+      const W = cv.width, H = cv.height, ox = W / 2, oy = H / 2;
+      cx.clearRect(0, 0, W, H);
+      const breathe = 0.04 * Math.sin(t / 900);
+      const base = Math.min(W, H) * 0.26;
+      const r = base * (1 + breathe + smoothAmp * 0.45);
+      const [c1, c2] = COLORS[mode] || COLORS.idle;
+
+      // halo externo
+      const glow = cx.createRadialGradient(ox, oy, r * 0.5, ox, oy, r * 2.4);
+      glow.addColorStop(0, hexA(c1, 0.45));
+      glow.addColorStop(1, hexA(c1, 0));
+      cx.fillStyle = glow;
+      cx.beginPath(); cx.arc(ox, oy, r * 2.4, 0, Math.PI * 2); cx.fill();
+
+      // anéis de onda (mais fortes ao falar)
+      const rings = mode === "speaking" ? 3 : (mode === "listening" ? 2 : 1);
+      for (let i = 1; i <= rings; i++) {
+        const phase = (t / 1400 + i / rings) % 1;
+        const rr = r * (1.1 + phase * (0.9 + smoothAmp));
+        cx.strokeStyle = hexA(c1, (1 - phase) * 0.35);
+        cx.lineWidth = 2;
+        cx.beginPath(); cx.arc(ox, oy, rr, 0, Math.PI * 2); cx.stroke();
+      }
+
+      // corpo da orbe
+      const body = cx.createRadialGradient(ox - r * 0.3, oy - r * 0.3, r * 0.1, ox, oy, r);
+      body.addColorStop(0, c1);
+      body.addColorStop(1, c2);
+      cx.fillStyle = body;
+      cx.beginPath(); cx.arc(ox, oy, r, 0, Math.PI * 2); cx.fill();
+
+      // "thinking": pontos orbitando
+      if (mode === "thinking") {
+        for (let i = 0; i < 3; i++) {
+          const a = t / 500 + (i * Math.PI * 2) / 3;
+          const px = ox + Math.cos(a) * r * 1.25, py = oy + Math.sin(a) * r * 1.25;
+          cx.fillStyle = hexA(c1, 0.9);
+          cx.beginPath(); cx.arc(px, py, 5, 0, Math.PI * 2); cx.fill();
+        }
+      }
+    }
+
+    function hexA(hex, a) {
+      const n = parseInt(hex.slice(1), 16);
+      return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+    }
+
+    // desenho inicial estático
+    drawOrb(0, 0, "idle");
+    setStateLabel("desligado");
+  </script>
+</body>
+</html>

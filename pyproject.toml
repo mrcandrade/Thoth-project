@@ -22,6 +22,16 @@ dependencies = [
     "pydantic-settings>=2.3",        # Settings a partir de .env + YAML
     "pyyaml>=6.0",                   # leitura dos configs/*.yaml
     "loguru>=0.7",                   # logging estruturado
+    # --- Agente conversacional (voz) ---
+    "openai>=1.40",                  # cliente OpenAI-compatible (Cerebras/Groq/Rio-vLLM)
+    "sounddevice>=0.4.6",            # captura de microfone / reprodução de áudio
+    "soundfile>=0.12",               # ler/escrever WAV
+    "webrtcvad-wheels>=2.0.14",      # detecção de voz (fim de turno) — wheels prontos
+    "edge-tts>=6.1",                 # TTS neural online PT-BR (voz padrão do agente)
+    "piper-tts>=1.2",                # TTS local PT-BR (fallback offline)
+    "faster-whisper>=1.0",           # STT local (alternativa offline ao Groq Whisper)
+    "wikipedia>=1.4",                # skill: pesquisa na Wikipédia
+    # opcional (skill de música): pip install pywhatkit
 ]
 
 [project.optional-dependencies]
