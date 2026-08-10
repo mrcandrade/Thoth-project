@@ -1,0 +1,11 @@
+# Instale a partir de dentro de jokenpo/:  pip install -r requirements.txt
+#
+# Instala o projeto Thoth em modo editável (mão HACKberry via serial, webcam +
+# visão MediaPipe, TTS) com TODAS as suas dependências (opencv, mediapipe, numpy,
+# pyserial, pyserial-asyncio, edge-tts, sounddevice, soundfile, fastapi, uvicorn…).
+-e ..
+
+# Framework de agentes + API da Anthropic (não vêm do Thoth):
+agno>=2.5
+anthropic>=0.40
+python-dotenv>=1.0
